@@ -1,10 +1,117 @@
 "use client";
 
 import { useState } from "react";
+import { useEffect } from "react";
+import { supabase } from "../lib/supabaseClient";
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState("Overview");
+    const [user, setUser] = useState(null);
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+      const [authError, setAuthError] = useState("");
+      const [authLoading, setAuthLoading] = useState(true);
+    useEffect(() => {
+          const loadUser = async () => {
+                  const { data: { user } } = await supabase.auth.getUser();
+                  setUser(user);
+                  setAuthLoading(false);
+                };
+          loadUser();
+          const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+                  setUser(session?.user ?? null);
+                });
+          return () => subscription.unsubscribe();
+        }, []);
+    const handleLogin = async (e) => {
+          e.preventDefault();
+          setAuthError("");
+          const { error } = await supabase.auth.signInWithPassword({
+                  email,
+                  password,
+                });
+          if (error) {
+                  setAuthError(error.message);
+                }
+        };
+    if (authLoading) {
+          return <div>Loading Family CFO...</div>;
+        }
+    if (!user) {
+          return (
+                  <main style={{ padding: "40px", maxWidth: "400px", margin: "0 auto" }}>
+          <h1>Welcome to Family CFO</h1>
+        <p>Sign in to access your family financial dashboard.</p>
 
+        <form onSubmit={handleLogin}>
+          <div style={{ marginBottom: "16px" }}>
+            <label
+              htmlFor="email"
+              style={{ display: "block", marginBottom: "6px" }}
+            >
+              Email
+            </label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              style={{
+                width: "100%",
+                padding: "10px",
+                border: "1px solid #ccc",
+                borderRadius: "8px",
+              }}
+            />
+          </div>
+
+          <div style={{ marginBottom: "16px" }}>
+            <label
+              htmlFor="password"
+              style={{ display: "block", marginBottom: "6px" }}
+            >
+              Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              style={{
+                width: "100%",
+                padding: "10px",
+                border: "1px solid #ccc",
+                borderRadius: "8px",
+              }}
+            />
+          </div>
+
+          {authError && (
+            <p style={{ color: "crimson", marginBottom: "16px" }}>
+              {authError}
+            </p>
+          )}
+
+          <button
+            type="submit"
+            style={{
+              width: "100%",
+              padding: "12px",
+              border: "0",
+              borderRadius: "8px",
+              background: "#28312b",
+              color: "white",
+              cursor: "pointer",
+            }}
+          >
+            Sign in
+          </button>
+        </form>
+      </main>
+    );
+  }
+  
   const stats = [
     { label: "Monthly Income", value: "PKR 250,000", icon: "↗" },
     { label: "Monthly Expenses", value: "PKR 142,500", icon: "↘" },
